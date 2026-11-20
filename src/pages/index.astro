@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CHAPTERS, LEVELS, chapterLevels } from '../lib/shell/levels/index.mjs';
+
+const base = import.meta.env.BASE_URL;
+const chapters = CHAPTERS.map((chapter) => ({ ...chapter, levels: chapterLevels(chapter.id) }));
+---
+
+<BaseLayout>
+  <h1 class="text-2xl font-semibold tracking-tight">Shell Lab</h1>
+  <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
+    浏览器里的 Linux 命令练习场：真敲命令、真看输出、真判对错。三章 {LEVELS.length} 关，从文件操作到权限。
+  </p>
+  <section class="mt-8 grid gap-4 sm:grid-cols-3">
+    {chapters.map((chapter) => (
+      <a href={`${base}lessons/#${chapter.id}`} class="rounded-lg border border-line bg-surface p-4 transition-colors hover:border-ink/30">
+        <h2 class="text-sm font-semibold">{chapter.title}</h2>
+        <p class="mt-1 text-[12px] leading-relaxed text-muted">{chapter.description}</p>
+        <p class="mt-3 text-[12px] text-muted" data-chapter-progress={chapter.id}>0 / {chapter.levels.length}</p>
+      </a>
+    ))}
+  </section>
+  <p class="mt-8 text-[13px]">
+    <a id="resume" href={`${base}lessons/files-1/`} class="text-ink underline underline-offset-2">从第一关开始 →</a>
+  </p>
+</BaseLayout>
+
+<script>
+  import { LEVELS, nextLevel } from '../lib/shell/levels/index.mjs';
+  import { loadProgress } from '../lib/progress.mjs';
+
+  const done = loadProgress(window.localStorage);
+  const base = import.meta.env.BASE_URL;
+  const resume = document.getElementById('resume') as HTMLAnchorElement | null;
+  if (resume && done.length) {
+    const next = nextLevel(done.at(-1)) ?? LEVELS.find((level) => !done.includes(level.id)) ?? LEVELS[0];
+    resume.href = `${base}lessons/${next.id}/`;
+    resume.textContent = `继续：${next.title} →`;
+  }
+  for (const el of document.querySelectorAll('[data-chapter-progress]')) {
+    const chapter = el.getAttribute('data-chapter-progress');
+    const all = LEVELS.filter((level) => level.chapter === chapter);
+    const finished = all.filter((level) => done.includes(level.id)).length;
+    el.textContent = `${finished} / ${all.length}`;
+  }
+</script>

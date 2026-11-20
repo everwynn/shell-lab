@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LevelRunner from '../../components/LevelRunner.vue';
+import { CHAPTERS, LEVELS, nextLevel, prevLevel } from '../../lib/shell/levels/index.mjs';
+
+export function getStaticPaths() {
+  return LEVELS.map((level) => ({ params: { level: level.id }, props: { level } }));
+}
+
+const { level } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const chapter = CHAPTERS.find((item) => item.id === level.chapter)!;
+const prev = prevLevel(level.id);
+const next = nextLevel(level.id);
+---
+
+<BaseLayout title={`${level.title} - Shell Lab`} description={level.brief}>
+  <nav class="text-[12px] text-muted">
+    <a href={`${base}lessons/`} class="hover:text-ink">全部关卡</a>
+    <span> / </span><span>{chapter.title}</span>
+  </nav>
+  <h1 class="mt-2 text-xl font-semibold tracking-tight">{level.title}</h1>
+  <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">{level.brief}</p>
+  <noscript>
+    <p class="mt-4 rounded border border-line bg-surface p-3 text-[13px] text-muted">终端练习需要启用 JavaScript；任务与提示仍可阅读。</p>
+  </noscript>
+  <div class="mt-6"><LevelRunner client:load level={level} /></div>
+  <div class="mt-6 flex items-center justify-between text-[13px]">
+    {prev ? <a href={`${base}lessons/${prev.id}/`} class="text-muted hover:text-ink">← {prev.title}</a> : <span />}
+    {next ? <a href={`${base}lessons/${next.id}/`} class="text-muted hover:text-ink">{next.title} →</a> : <span />}
+  </div>
+</BaseLayout>

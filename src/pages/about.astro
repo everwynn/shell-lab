@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const supported = ['pwd', 'ls', 'cd', 'mkdir', 'touch', 'rm', 'cp', 'mv', 'cat', 'echo', 'grep', 'head', 'tail', 'wc', 'chmod', 'chown', 'clear', 'help'];
+const unsupported = [
+  '环境变量与 $VAR、$() 命令替换',
+  'heredoc、&& / || / ; 多命令串联',
+  '2> 重定向、sudo、软链接、脚本执行、Tab 路径补全',
+];
+---
+
+<BaseLayout title="关于 - Shell Lab">
+  <h1 class="text-xl font-semibold tracking-tight">关于 Shell Lab</h1>
+  <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
+    Shell Lab 是纯前端的教学迷你 shell：所有文件、权限、输出都在浏览器内存里模拟，不连接任何真实系统。想先看懂原理，可以去 <a href="https://everwynn.github.io/cs-lab/" class="text-ink underline underline-offset-2">cs-lab</a>。
+  </p>
+  <h2 class="mt-6 text-sm font-semibold">支持的命令</h2>
+  <p class="mt-2 font-mono text-[12px] text-muted">{supported.join(' · ')}</p>
+  <h2 class="mt-6 text-sm font-semibold">不支持（v1 明确不做）</h2>
+  <ul class="mt-2 list-disc pl-5 text-[12px] leading-relaxed text-muted">
+    {unsupported.map((item) => <li>{item}</li>)}
+  </ul>
+  <h2 class="mt-6 text-sm font-semibold">隐私</h2>
+  <p class="mt-1 text-[12px] text-muted">
+    进度只存在当前浏览器的 localStorage，不上传任何数据。
+    <button type="button" id="clear-progress" class="ml-1 text-ink underline underline-offset-2">清除本机进度</button>
+  </p>
+</BaseLayout>
+
+<script>
+  import { clearProgress } from '../lib/progress.mjs';
+
+  const button = document.getElementById('clear-progress') as HTMLButtonElement | null;
+  button?.addEventListener('click', () => {
+    clearProgress(window.localStorage);
+    button.textContent = '已清除';
+    button.disabled = true;
+  });
+</script>

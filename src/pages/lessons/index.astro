@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { CHAPTERS, chapterLevels } from '../../lib/shell/levels/index.mjs';
+
+const base = import.meta.env.BASE_URL;
+const chapters = CHAPTERS.map((chapter) => ({ ...chapter, levels: chapterLevels(chapter.id) }));
+---
+
+<BaseLayout title="全部关卡 - Shell Lab">
+  <h1 class="text-xl font-semibold tracking-tight">全部关卡</h1>
+  {chapters.map((chapter) => (
+    <section id={chapter.id} class="mt-8">
+      <h2 class="text-sm font-semibold">{chapter.title}</h2>
+      <ul class="mt-2 divide-y divide-line rounded-lg border border-line bg-surface">
+        {chapter.levels.map((level, index) => (
+          <li>
+            <a href={`${base}lessons/${level.id}/`} class="flex items-center justify-between px-4 py-3 text-[13px] hover:bg-line/20">
+              <span><span class="text-muted">{index + 1}.</span> {level.title}</span>
+              <span class="text-ok" data-level-done={level.id} aria-hidden="true"></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</BaseLayout>
+
+<script>
+  import { loadProgress } from '../../lib/progress.mjs';
+
+  const done = loadProgress(window.localStorage);
+  for (const el of document.querySelectorAll('[data-level-done]')) {
+    const id = el.getAttribute('data-level-done');
+    if (id && done.includes(id)) el.textContent = '✓';
+  }
+</script>
