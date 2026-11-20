@@ -3,7 +3,9 @@
 export function tokenize(line) {
   const input = String(line ?? '');
   const commands = [];
+  const commandQuoted = []; // 与每段 words 平行的引号标记，供 execute 判断是否跳过通配展开
   let words = [];
+  let wordQuoted = [];
   let quoted = false; // 当前词是否由引号产生（允许空串成词）
   let word = '';
   let quote = null;
@@ -17,6 +19,7 @@ export function tokenize(line) {
       currentRedirect = { type: currentRedirect.type, target: word };
     } else {
       words.push(word);
+      wordQuoted.push(quoted);
     }
     word = '';
     quoted = false;
@@ -26,7 +29,9 @@ export function tokenize(line) {
     if (pending) throw new Error('重定向缺少目标文件');
     if (!words.length) throw new Error('空命令');
     commands.push({ words, redirect: currentRedirect });
+    commandQuoted.push(wordQuoted);
     words = [];
+    wordQuoted = [];
     currentRedirect = null;
   };
 
@@ -70,5 +75,5 @@ export function tokenize(line) {
   } catch (error) {
     return { error: error.message };
   }
-  return { commands };
+  return { commands, commandQuoted };
 }

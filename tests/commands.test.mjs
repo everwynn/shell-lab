@@ -163,3 +163,38 @@ test('管道组合：cut | sort | uniq -c | sort -rn', () => {
   assert.equal(result.stdout, '3 10.0.0.3\n2 10.0.0.1\n1 10.0.0.2\n');
   assert.equal(result.code, 0);
 });
+
+test('find：-name 递归匹配与 ./ 前缀', () => {
+  const s = session({
+    'project/src/app.log': 'A\n',
+    'project/docs/guide.md': '# g\n',
+    'project/logs/2026/app.log': 'B\n',
+    'scratch/tmp.log': 'C\n',
+  });
+  assert.equal(
+    runCommand(s, ['find', '.', '-name', '*.log']).stdout,
+    './project/logs/2026/app.log\n./project/src/app.log\n./scratch/tmp.log\n',
+  );
+});
+
+test('find：-type d 只列目录、无匹配输出空', () => {
+  const s = session({ 'project/src/.keep': '', 'project/docs/.keep': '', 'project/README.md': '' });
+  assert.equal(
+    runCommand(s, ['find', '.', '-type', 'd']).stdout,
+    '.\n./project\n./project/docs\n./project/src\n',
+  );
+  assert.equal(runCommand(s, ['find', '.', '-name', '*.nope']).stdout, '');
+});
+
+test('find：路径不存在与起点无权限', () => {
+  const s = session({ 'locked/x.txt': '' });
+  assert.match(runCommand(s, ['find', 'nope']).stderr, /No such file or directory/);
+  getNode(s.fs, '~/locked').mode = 0o644;
+  assert.match(runCommand(s, ['find', 'locked']).stderr, /Permission denied/);
+});
+
+test('find：/ 前缀保留、起点名用输入词干', () => {
+  const s = session({ 'd/x.txt': '' });
+  assert.equal(runCommand(s, ['find', '/', '-type', 'd']).stdout, '/\n/home\n/home/me\n/home/me/d\n');
+  assert.equal(runCommand(s, ['find', '.', '-name', 'me']).stdout, '');
+});

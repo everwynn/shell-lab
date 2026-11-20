@@ -1,12 +1,7 @@
 // 执行器：管道、重定向、通配符展开。stderr 一律直通终端，不参与管道。
 import { tokenize } from './tokenize.mjs';
 import { COMMANDS } from './commands.mjs';
-import { dirNames, getNode, hasPerm, resolvePath, writeFile } from './vfs.mjs';
-
-function globToRegExp(pattern) {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]');
-  return new RegExp(`^${escaped}$`);
-}
+import { dirNames, getNode, globToRegExp, hasPerm, resolvePath, writeFile } from './vfs.mjs';
 
 /** 对含 * 或 ? 的词做目录内匹配；无匹配按 bash 默认保留字面量。 */
 export function expandWord(fs, cwd, word) {
@@ -48,7 +43,10 @@ export function runLine({ fs, cwd, user, line }) {
   let clear = false;
   for (let index = 0; index < parsed.commands.length; index += 1) {
     const segment = parsed.commands[index];
-    const words = segment.words.flatMap((word) => expandWord(fs, currentCwd, word));
+    // 引号内保持字面量（bash 习惯）：带引号的词跳过通配展开
+    const words = segment.words.flatMap((word, position) => (
+      parsed.commandQuoted?.[index]?.[position] ? [word] : expandWord(fs, currentCwd, word)
+    ));
     const name = words[0];
     if (!COMMANDS[name]) {
       errors.push(`shell: ${name}: 本练习场暂不支持该命令（见 /about/ 支持清单）`);

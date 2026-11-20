@@ -121,3 +121,9 @@ export function createFsFromSetup(setup = {}) {
   }
   return fs;
 }
+
+/** glob 模式（* / ?）转正则；供 execute 的通配符展开与 find -name 共用。 */
+export function globToRegExp(pattern) {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]');
+  return new RegExp(`^${escaped}$`);
+}

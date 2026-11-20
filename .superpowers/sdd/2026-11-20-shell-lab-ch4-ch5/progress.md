@@ -32,3 +32,11 @@ Spec: shell-lab/docs/superpowers/specs/2026-11-20-shell-lab-ch4-ch5-design.md（
 - Task 1: minor (deferred): sort 多文件遇缺失文件即中止，未按 cat/ls 的「聚合 errors + 保留可用输出」风格
 - Task 1: minor (deferred): sort 字典序用 localeCompare，与 vfs.dirNames 码点序不一致（建议改 a<b 比较，两处口径统一）
 - Task 1: minor (fixed): 报告/计划中的白名单计数错误已修正（18→21，最终 22）
+
+### Task 2: globToRegExp + find
+- 实现：vfs 导出 globToRegExp；execute 改导入；commands 新增 find（白名单 21→22）；测试 +3（TDD：19/3 fail → 92/0 pass）
+- 评审：Spec ✅ / Quality approved，但含 1 Important（引号内通配被提前展开）+ 2 Minor（find / 前缀、起点词干）
+- Ruling: 采纳 Important #1 在本 Task 修复（原计划列为「另开任务」）— 理由：search 章核心教法依赖引号语义，spec 亦写「加引号更稳」，且修复面可控（tokenize 旁路字段，零破坏既有 deepEqual 断言）— 若判断有误，成本仅是 tokenize 返回值多一个字段，可无痛移除
+- Task 2: fix round 1/5 (3 addressed, 0 open — 引号展开 / find 前缀 / 起点词干；tokenize/execute/commands 共 +3 测试，95 pass)
+- Task 2: 复审 clean（scoped re-review：3 ADDRESSED，无新问题；95/0）
+- Task 2: complete（待用户提交；计划已同步：Task 2 Files/测试/实现/提交命令、Self-Review 局限段、Task 6 QUICK 改 "*.log"、Task 8 总数 120）

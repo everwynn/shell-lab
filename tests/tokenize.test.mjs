@@ -45,3 +45,9 @@ test('语法错误：未闭合引号 / 重定向无目标 / 空命令段', () =>
   assert.ok(tokenize('| wc').error);
   assert.ok(tokenize('ls > a > b').error);
 });
+
+test('引号标记：commandQuoted 与每段 words 对齐', () => {
+  const { commands, commandQuoted } = tokenize('find . -name "*.log" | cat *.log');
+  assert.deepEqual(commands[0].words, ['find', '.', '-name', '*.log']);
+  assert.deepEqual(commandQuoted, [[false, false, false, true], [false, false]]);
+});

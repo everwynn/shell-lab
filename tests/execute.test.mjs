@@ -78,3 +78,12 @@ test('clear 透传', () => {
   const r = runLine({ ...session(), line: 'clear' });
   assert.equal(r.clear, true);
 });
+
+test('引号内通配不展开：find . -name "*.log" 原样传参', () => {
+  const quoted = runLine({ ...session({ 'a.log': '', 'b.log': '' }), line: 'find . -name "*.log"' });
+  assert.equal(quoted.code, 0);
+  assert.equal(quoted.stdout, './a.log\n./b.log\n');
+  // 无引号时按 bash 习惯先展开，多文件名成为多余操作数
+  const bare = runLine({ ...session({ 'a.log': '', 'b.log': '' }), line: 'find . -name *.log' });
+  assert.match(bare.stderr, /只支持一个起始路径/);
+});

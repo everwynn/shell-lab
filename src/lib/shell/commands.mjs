@@ -6,6 +6,7 @@ import {
   ensureDir,
   formatMode,
   getNode,
+  globToRegExp,
   groupName,
   hasPerm,
   removeNode,
@@ -398,6 +399,56 @@ function cut(state, args) {
   return ok(out.length ? `${out.join('\n')}\n` : '');
 }
 
+function find(state, args) {
+  let rootRaw = '.';
+  let namePattern = null;
+  let typeFilter = null;
+  const operands = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '-name') {
+      namePattern = args[index + 1];
+      if (namePattern === undefined) return fail('find: -name 需要一个模式');
+      index += 1;
+    } else if (arg === '-type') {
+      typeFilter = args[index + 1];
+      if (typeFilter !== 'f' && typeFilter !== 'd') return fail("find: -type 只支持 'f' 或 'd'");
+      index += 1;
+    } else if (arg.startsWith('-')) return fail(`find: 暂不支持该选项 '${arg}'`);
+    else operands.push(arg);
+  }
+  if (operands.length > 1) return fail('find: 只支持一个起始路径');
+  if (operands.length === 1) rootRaw = operands[0];
+  const rootAbs = resolve(state, rootRaw);
+  const root = getNode(state.fs, rootAbs);
+  if (!root) return fail(`find: '${rootRaw}': No such file or directory`);
+  if (root.type === 'dir' && !(hasPerm(root, state.user, 'r') && hasPerm(root, state.user, 'x'))) {
+    return fail(`find: '${rootRaw}': Permission denied`);
+  }
+  const matcher = namePattern === null ? null : globToRegExp(namePattern);
+  const trimmed = rootRaw.replace(/\/+$/, '');
+  const prefix = trimmed === '' ? '/' : trimmed;
+  const joinPath = (base, name) => (base === '/' ? `/${name}` : `${base}/${name}`);
+  const lines = [];
+  const matched = (node, name) => {
+    if (matcher && !matcher.test(name)) return false;
+    if (typeFilter && node.type !== (typeFilter === 'f' ? 'file' : 'dir')) return false;
+    return true;
+  };
+  // 输出保留用户输入的路径前缀（find . → ./x）；起点名取输入词干（非绝对路径基名）
+  const walk = (node, name, path) => {
+    if (matched(node, name)) lines.push(path);
+    if (node.type !== 'dir') return;
+    for (const childName of dirNames(node)) {
+      const child = node.children[childName];
+      if (child.type === 'dir' && !(hasPerm(child, state.user, 'r') && hasPerm(child, state.user, 'x'))) continue;
+      walk(child, childName, joinPath(path, childName));
+    }
+  };
+  walk(root, baseOf(prefix) || prefix, prefix);
+  return ok(lines.length ? `${lines.join('\n')}\n` : '');
+}
+
 function applySymbolic(mode, expr) {
   const match = /^([ugoa]*)([+-])([rwx]+)$/.exec(expr);
   if (!match) return null;
@@ -465,7 +516,7 @@ function help() {
   return ok(`支持的命令：${Object.keys(COMMANDS).join(' ')}\n`);
 }
 
-export const COMMANDS = { pwd, ls, cd, mkdir, touch, rm, cp, mv, cat, echo, grep, head, tail, wc, sort, uniq, cut, chmod, chown, clear, help };
+export const COMMANDS = { pwd, ls, cd, mkdir, touch, rm, cp, mv, cat, echo, grep, head, tail, wc, sort, uniq, cut, find, chmod, chown, clear, help };
 
 /** 按白名单执行一条命令；未知命令返回统一文案。 */
 export function runCommand(state, args) {
