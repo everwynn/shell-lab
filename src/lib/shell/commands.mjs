@@ -296,6 +296,108 @@ function wc(state, args) {
   return ok(`${measure(state.stdin ?? '')}\n`);
 }
 
+function readText(state, raw, name) {
+  const node = getNode(state.fs, resolve(state, raw));
+  if (!node) return { error: fail(`${name}: ${raw}: No such file or directory`) };
+  if (node.type !== 'file') return { error: fail(`${name}: ${raw}: Is a directory`) };
+  if (!hasPerm(node, state.user, 'r')) return { error: fail(`${name}: ${raw}: Permission denied`) };
+  return { text: node.content };
+}
+
+function linesOf(text) {
+  const rows = text.split('\n');
+  if (rows.at(-1) === '') rows.pop();
+  return rows;
+}
+
+function sort(state, args) {
+  let reverse = false;
+  let numeric = false;
+  const files = [];
+  for (const arg of args) {
+    if (arg === '-r') reverse = true;
+    else if (arg === '-n') numeric = true;
+    else if (arg === '-rn' || arg === '-nr') { reverse = true; numeric = true; }
+    else if (arg.startsWith('-')) return fail(`sort: 暂不支持该选项 '${arg}'`);
+    else files.push(arg);
+  }
+  let text = state.stdin ?? '';
+  if (files.length) {
+    text = '';
+    for (const raw of files) {
+      const read = readText(state, raw, 'sort');
+      if (read.error) return read.error;
+      text += read.text;
+    }
+  }
+  const rows = linesOf(text);
+  // sort -n 取行首数字前缀（"3 Timeout" 按 3 排），与真实 sort 的常见用法一致
+  const num = (line) => {
+    const match = /^\s*(-?\d+(?:\.\d+)?)/.exec(line);
+    return match ? Number(match[1]) : 0;
+  };
+  rows.sort(numeric ? (a, b) => num(a) - num(b) : (a, b) => a.localeCompare(b));
+  if (reverse) rows.reverse();
+  return ok(rows.length ? `${rows.join('\n')}\n` : '');
+}
+
+function uniq(state, args) {
+  let count = false;
+  const files = [];
+  for (const arg of args) {
+    if (arg === '-c') count = true;
+    else if (arg.startsWith('-')) return fail(`uniq: 暂不支持该选项 '${arg}'`);
+    else files.push(arg);
+  }
+  if (files.length > 1) return fail('uniq: 一次只支持一个文件');
+  let text = state.stdin ?? '';
+  if (files.length) {
+    const read = readText(state, files[0], 'uniq');
+    if (read.error) return read.error;
+    text = read.text;
+  }
+  const rows = linesOf(text);
+  const out = [];
+  let prev = null;
+  let n = 0;
+  for (const line of rows) {
+    if (line === prev) { n += 1; continue; }
+    if (prev !== null) out.push(count ? `${n} ${prev}` : prev);
+    prev = line;
+    n = 1;
+  }
+  if (prev !== null) out.push(count ? `${n} ${prev}` : prev);
+  return ok(out.length ? `${out.join('\n')}\n` : '');
+}
+
+function cut(state, args) {
+  let delim = null;
+  let field = null;
+  const files = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '-d') { delim = args[index + 1] ?? ''; index += 1; }
+    else if (arg.startsWith('-d')) delim = arg.slice(2);
+    else if (arg === '-f') { field = Number(args[index + 1]); index += 1; }
+    else if (arg.startsWith('-f')) field = Number(arg.slice(2));
+    else if (arg.startsWith('-')) return fail(`cut: 暂不支持该选项 '${arg}'`);
+    else files.push(arg);
+  }
+  if (!delim) return fail('cut: 缺少 -d 分隔符');
+  if (delim.length !== 1) return fail('cut: -d 只支持单个字符');
+  if (!Number.isInteger(field) || field < 1) return fail('cut: 缺少 -f 列号（从 1 开始）');
+  if (files.length > 1) return fail('cut: 一次只支持一个文件');
+  let text = state.stdin ?? '';
+  if (files.length) {
+    const read = readText(state, files[0], 'cut');
+    if (read.error) return read.error;
+    text = read.text;
+  }
+  const rows = linesOf(text);
+  const out = rows.map((line) => line.split(delim)[field - 1] ?? '');
+  return ok(out.length ? `${out.join('\n')}\n` : '');
+}
+
 function applySymbolic(mode, expr) {
   const match = /^([ugoa]*)([+-])([rwx]+)$/.exec(expr);
   if (!match) return null;
@@ -363,7 +465,7 @@ function help() {
   return ok(`支持的命令：${Object.keys(COMMANDS).join(' ')}\n`);
 }
 
-export const COMMANDS = { pwd, ls, cd, mkdir, touch, rm, cp, mv, cat, echo, grep, head, tail, wc, chmod, chown, clear, help };
+export const COMMANDS = { pwd, ls, cd, mkdir, touch, rm, cp, mv, cat, echo, grep, head, tail, wc, sort, uniq, cut, chmod, chown, clear, help };
 
 /** 按白名单执行一条命令；未知命令返回统一文案。 */
 export function runCommand(state, args) {

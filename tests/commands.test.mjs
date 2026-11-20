@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { runCommand } from '../src/lib/shell/commands.mjs';
+import { runLine } from '../src/lib/shell/execute.mjs';
 import { HOME, createFsFromSetup, getNode } from '../src/lib/shell/vfs.mjs';
 
 function session(files = {}) {
@@ -117,4 +118,48 @@ test('clear 与 help', () => {
   const s = session();
   assert.equal(runCommand(s, ['clear']).clear, true);
   assert.ok(runCommand(s, ['help']).stdout.includes('chmod'));
+});
+
+test('sort：字典序、-r 倒序、-n 数值、-rn 组合', () => {
+  const s = session({ 'names.txt': 'pear\napple\norange\nbanana\n' });
+  assert.equal(runCommand(s, ['sort', 'names.txt']).stdout, 'apple\nbanana\norange\npear\n');
+  assert.equal(runCommand(s, ['sort', '-r', 'names.txt']).stdout, 'pear\norange\nbanana\napple\n');
+  const nums = session({ 'n.txt': '10 a\n2 b\n30 c\n' });
+  assert.equal(runCommand(nums, ['sort', '-n', 'n.txt']).stdout, '2 b\n10 a\n30 c\n');
+  assert.equal(runCommand(nums, ['sort', '-rn', 'n.txt']).stdout, '30 c\n10 a\n2 b\n');
+});
+
+test('sort：stdin 输入、空输入输出空、文件缺失报错', () => {
+  const s = session();
+  s.stdin = 'b\na\n';
+  assert.equal(runCommand(s, ['sort']).stdout, 'a\nb\n');
+  assert.equal(runCommand(session(), ['sort']).stdout, '');
+  assert.match(runCommand(session(), ['sort', 'gone.txt']).stderr, /No such file or directory/);
+});
+
+test('uniq：只合并相邻重复，-c 计数', () => {
+  const s = session({ 'errors.log': 'Timeout\nDisk full\nTimeout\nTimeout\n' });
+  assert.equal(runCommand(s, ['uniq', 'errors.log']).stdout, 'Timeout\nDisk full\nTimeout\n');
+  assert.equal(runCommand(s, ['uniq', '-c', 'errors.log']).stdout, '1 Timeout\n1 Disk full\n2 Timeout\n');
+  const sorted = session({ 'errors.log': 'D\nT\nT\nT\n' });
+  assert.equal(runCommand(sorted, ['uniq', '-c', 'errors.log']).stdout, '1 D\n3 T\n');
+});
+
+test('cut：-f 取列、自定义分隔符、管道与缺参数报错', () => {
+  const s = session({ 'access.log': '10.0.0.1 2026-11-20 ERROR\n10.0.0.2 2026-11-20 INFO\n' });
+  assert.equal(runCommand(s, ['cut', '-d', ' ', '-f', '1', 'access.log']).stdout, '10.0.0.1\n10.0.0.2\n');
+  assert.equal(runCommand(s, ['cut', '-d ', '-f1', 'access.log']).stdout, '10.0.0.1\n10.0.0.2\n');
+  const colon = session({ 'kv.txt': 'a:1\nb:2\n' });
+  assert.equal(runCommand(colon, ['cut', '-d:', '-f2', 'kv.txt']).stdout, '1\n2\n');
+  assert.match(runCommand(session(), ['cut', '-f1']).stderr, /缺少 -d/);
+  assert.match(runCommand(session(), ['cut', '-d:', 'x.txt']).stderr, /缺少 -f/);
+});
+
+test('管道组合：cut | sort | uniq -c | sort -rn', () => {
+  const s = session({
+    'access.log': '10.0.0.3 ERROR\n10.0.0.1 ERROR\n10.0.0.3 ERROR\n10.0.0.2 ERROR\n10.0.0.1 ERROR\n10.0.0.3 ERROR\n',
+  });
+  const result = runLine({ fs: s.fs, cwd: s.cwd, user: 'me', line: "cut -d' ' -f1 access.log | sort | uniq -c | sort -rn" });
+  assert.equal(result.stdout, '3 10.0.0.3\n2 10.0.0.1\n1 10.0.0.2\n');
+  assert.equal(result.code, 0);
 });
