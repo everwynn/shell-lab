@@ -198,3 +198,25 @@ test('find：/ 前缀保留、起点名用输入词干', () => {
   assert.equal(runCommand(s, ['find', '/', '-type', 'd']).stdout, '/\n/home\n/home/me\n/home/me/d\n');
   assert.equal(runCommand(s, ['find', '.', '-name', 'me']).stdout, '');
 });
+
+test('mv：多源移入目录，多源目标非目录报错', () => {
+  const s = session({ 'a.txt': 'A\n', 'b.txt': 'B\n', 'dst/keep.txt': '' });
+  assert.equal(runCommand(s, ['mv', 'a.txt', 'b.txt', 'dst']).code, 0);
+  assert.equal(getNode(s.fs, '~/dst/a.txt').content, 'A\n');
+  assert.equal(getNode(s.fs, '~/dst/b.txt').content, 'B\n');
+  assert.equal(getNode(s.fs, '~/a.txt'), null);
+  assert.match(runCommand(s, ['mv', 'dst/keep.txt', 'dst/a.txt', 'new.txt']).stderr, /不是目录/);
+});
+
+test('mv：部分失败继续；自嵌套 / 同文件 / 类型冲突被拒绝且不删源', () => {
+  const s = session({ 'a.txt': 'A\n', 'b.txt': 'B\n', 'pkg/lib.js': '', 'dst/a.txt/.keep': '' });
+  const partial = runCommand(s, ['mv', 'a.txt', 'nope.txt', 'dst']);
+  assert.equal(partial.code, 1);
+  assert.match(partial.stderr, /cannot stat 'nope.txt'/);
+  assert.match(partial.stderr, /同名目录/);
+  assert.equal(getNode(s.fs, '~/a.txt').content, 'A\n');
+  assert.match(runCommand(s, ['mv', 'pkg', 'pkg']).stderr, /子目录/);
+  assert.equal(getNode(s.fs, '~/pkg/lib.js').content, '');
+  assert.match(runCommand(s, ['mv', 'b.txt', 'b.txt']).stderr, /相同/);
+  assert.equal(getNode(s.fs, '~/b.txt').content, 'B\n');
+});

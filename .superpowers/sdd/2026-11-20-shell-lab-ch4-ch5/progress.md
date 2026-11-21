@@ -40,3 +40,15 @@ Spec: shell-lab/docs/superpowers/specs/2026-11-20-shell-lab-ch4-ch5-design.md（
 - Task 2: fix round 1/5 (3 addressed, 0 open — 引号展开 / find 前缀 / 起点词干；tokenize/execute/commands 共 +3 测试，95 pass)
 - Task 2: 复审 clean（scoped re-review：3 ADDRESSED，无新问题；95/0）
 - Task 2: complete（待用户提交；计划已同步：Task 2 Files/测试/实现/提交命令、Self-Review 局限段、Task 6 QUICK 改 "*.log"、Task 8 总数 120）
+- Task 2: 用户已提交（"提交好了"），进入 Task 3。
+
+### Task 3: mv 多源
+- 实现：mv 重写为 `mv 源... 目标`，多源非目录报 `mv: 目标 X 不是目录`；错误聚合、部分失败继续。
+- TDD：首轮 23/1 fail → 96/96；守卫用例后 24/1 fail → 97/97。
+- 任务评审（CodeReview current_session）：Spec ✅ / Quality approved；1 Important（brief 缺失）+ 3 Minor（自嵌套、copy 失败静默删源、分支缺测试）。
+- Ruling: 4 条 findings 全部当场修复 — 同一函数同一风险面，修复总计约 10 行代码 + 1 个测试用例；不修则「mv * 目录」「文件撞目录」会在 ch5 challenge-2 的真实学员操作中丢数据/产生意外嵌套 — 若判断有误，成本仅为多一个守卫与断言，易回退。
+- Task 3: fix round 1/5（4 条全部 ADDRESSED；附带修复 `mv x x` 删源问题；97 pass）
+- Task 3: 复审 clean（scoped re-review：4 ADDRESSED，无新问题；97/0；PASS 可提交）
+- Task 3: minor (deferred): copyNode 无返回值，目录递归内部同名类型冲突仍可能静默丢数据（既有限制，修复需改 copyNode 返回值，ch5 关卡不触发）
+- 计划同步：Task 3 Step 1/3/4/5、Task 8 与 Self-Review 计数 121。
+- Task 3: complete（待用户提交）

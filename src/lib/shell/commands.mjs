@@ -180,21 +180,38 @@ function cp(state, args) {
 }
 
 function mv(state, args) {
-  if (args.length !== 2) return fail('mv: 需要两个参数：源 目标');
-  const [srcRaw, destRaw] = args;
-  const srcAbs = resolve(state, srcRaw);
-  const src = getNode(state.fs, srcAbs);
-  if (!src) return fail(`mv: cannot stat '${srcRaw}': No such file or directory`);
+  const operands = [];
+  for (const arg of args) {
+    if (arg.startsWith('-')) return fail(`mv: 暂不支持该选项 '${arg}'`);
+    operands.push(arg);
+  }
+  if (operands.length < 2) return fail('mv: 需要至少两个参数：源 目标');
+  const destRaw = operands.pop();
   const destAbs = resolve(state, destRaw);
   const destNode = getNode(state.fs, destAbs);
-  const targetAbs = destNode?.type === 'dir' ? `${destAbs}/${baseOf(srcAbs)}` : destAbs;
-  const targetParent = getNode(state.fs, parentOf(targetAbs));
-  if (!targetParent || targetParent.type !== 'dir') return fail(`mv: cannot move '${srcRaw}': No such file or directory`);
-  const srcParent = getNode(state.fs, parentOf(srcAbs));
-  if (!hasPerm(srcParent, state.user, 'w') || !hasPerm(targetParent, state.user, 'w')) return fail(`mv: cannot move '${srcRaw}': Permission denied`);
-  removeNode(state.fs, srcAbs);
-  copyNode(state.fs, src, targetAbs);
-  return ok();
+  if (operands.length > 1 && destNode?.type !== 'dir') return fail(`mv: 目标 ${destRaw} 不是目录`);
+  const errors = [];
+  for (const srcRaw of operands) {
+    const srcAbs = resolve(state, srcRaw);
+    const src = getNode(state.fs, srcAbs);
+    if (!src) { errors.push(`mv: cannot stat '${srcRaw}': No such file or directory`); continue; }
+    const targetAbs = destNode?.type === 'dir' ? `${destAbs}/${baseOf(srcAbs)}` : destAbs;
+    const targetParent = getNode(state.fs, parentOf(targetAbs));
+    if (!targetParent || targetParent.type !== 'dir') { errors.push(`mv: cannot move '${srcRaw}': No such file or directory`); continue; }
+    const srcParent = getNode(state.fs, parentOf(srcAbs));
+    if (!hasPerm(srcParent, state.user, 'w') || !hasPerm(targetParent, state.user, 'w')) { errors.push(`mv: cannot move '${srcRaw}': Permission denied`); continue; }
+    if (targetAbs === srcAbs) { errors.push(`mv: '${srcRaw}' 与目标相同`); continue; }
+    if (src.type === 'dir' && targetAbs.startsWith(`${srcAbs}/`)) { errors.push(`mv: cannot move '${srcRaw}' 到自身子目录 '${targetAbs}'`); continue; }
+    // 目标位置已有同名项且类型不同（如文件撞目录）时报错，避免 copy 静默失败后源已被删
+    const existingTarget = getNode(state.fs, targetAbs);
+    if (existingTarget && existingTarget.type !== src.type) {
+      errors.push(`mv: cannot move '${srcRaw}': 目标已存在同名${existingTarget.type === 'dir' ? '目录' : '文件'}`);
+      continue;
+    }
+    copyNode(state.fs, src, targetAbs);
+    removeNode(state.fs, srcAbs);
+  }
+  return { code: errors.length ? 1 : 0, stdout: '', stderr: errors.join('\n') };
 }
 
 function cat(state, args) {
