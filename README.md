@@ -1,18 +1,18 @@
 # Shell Lab
 
-浏览器里的 Linux 命令练习场：分关卡练文件、文本与权限，纯前端模拟终端。
+浏览器里的 Linux 命令练习场：分关卡练文件、文本、权限与日志统计，纯前端模拟终端。
 
 ## 功能
 
 | 功能 | 说明 |
 |---|---|
-| 三章 18 关 | 文件与目录 / 文本与管道 / 权限与用户，每章 6 关（末关为挑战） |
+| 五章 30 关 | 文件与目录 / 文本与管道 / 权限与用户 / 查找与统计 / 挑战工坊，每章 6 关（末关为挑战） |
 | 真终端交互 | 命令行解析、管道、重定向、通配符、权限位真实生效 |
 | 判定与反馈 | 每关 1–4 条状态断言，实时打勾；两级提示；演示回放（副本隔离） |
 | 进度保存 | 完成记录存 localStorage，首页「继续上一关」 |
 | 移动端 | 快捷符号/命令条；375px 宽可用 |
 
-支持命令：`pwd ls cd mkdir touch rm cp mv cat echo grep head tail wc chmod chown clear help`
+支持命令：`pwd ls cd mkdir touch rm cp mv cat echo grep head tail wc sort uniq cut find chmod chown clear help`
 
 **明确不支持**：环境变量、`$()`、heredoc、`&&` / `||` / `;`、`2>`、`sudo`、软链接、脚本、Tab 路径补全。
 
@@ -31,9 +31,9 @@ npm run preview
 ## 目录结构
 
 ```
-src/lib/shell/    vfs / tokenize / commands / execute / assertions + levels 三章数据
+src/lib/shell/    vfs / tokenize / commands / execute / assertions + levels 五章数据
 src/components/   LevelRunner（单岛）+ TerminalPanel / LevelTasks / DemoPlayer
-src/pages/        首页 / lessons 总览 / [level] 18 关 / about / sitemap / robots
+src/pages/        首页 / lessons 总览 / [level] 30 关 / about / sitemap / robots
 tests/            node --test 直测引擎与关卡内容
 ```
 

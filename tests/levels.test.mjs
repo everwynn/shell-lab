@@ -13,9 +13,9 @@ import { HOME, createFsFromSetup } from '../src/lib/shell/vfs.mjs';
 import { runLine } from '../src/lib/shell/execute.mjs';
 import { evaluate, validateGoal } from '../src/lib/shell/assertions.mjs';
 
-test('结构：18 关、id 唯一、每章 6 关、两级提示', () => {
-  assert.equal(LEVELS.length, 18);
-  assert.equal(new Set(LEVELS.map((level) => level.id)).size, 18);
+test('结构：30 关、id 唯一、每章 6 关、两级提示', () => {
+  assert.equal(LEVELS.length, 30);
+  assert.equal(new Set(LEVELS.map((level) => level.id)).size, 30);
   for (const chapter of CHAPTERS) assert.equal(chapterLevels(chapter.id).length, 6);
   for (const level of LEVELS) {
     assert.ok(CHAPTERS.some((chapter) => chapter.id === level.chapter), `${level.id} 章节非法`);
@@ -37,7 +37,9 @@ test('工具函数：getLevel / nextLevel / prevLevel', () => {
   assert.equal(getLevel('nope'), null);
   assert.equal(nextLevel('files-1').id, 'files-2');
   assert.equal(prevLevel('files-1'), null);
-  assert.equal(nextLevel('perms-6'), null);
+  assert.equal(nextLevel('perms-6').id, 'search-1');
+  assert.equal(nextLevel('search-6').id, 'challenge-1');
+  assert.equal(nextLevel('challenge-6'), null);
 });
 
 for (const level of LEVELS) {

@@ -19,6 +19,8 @@ const QUICK = {
   files: ['ls', 'cd', 'pwd', 'mkdir', 'cp', 'mv', 'rm', '|', '>', '~'],
   text: ['cat', 'grep', 'wc', 'head', 'tail', '|', '>', '>>', '~'],
   perms: ['ls -l', 'chmod', 'chown', '600', '644', '700', '755', '775', '~'],
+  search: ['find', 'sort', 'uniq', 'cut', '|', '>', '"*.log"', '~'],
+  challenge: ['ls', 'mkdir', 'touch', 'mv', 'chmod', 'grep', '|', '>', '~'],
 };
 
 function insert(text) {

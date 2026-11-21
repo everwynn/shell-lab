@@ -9,7 +9,7 @@ const chapters = CHAPTERS.map((chapter) => ({ ...chapter, levels: chapterLevels(
 <BaseLayout>
   <h1 class="text-2xl font-semibold tracking-tight">Shell Lab</h1>
   <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
-    浏览器里的 Linux 命令练习场：真敲命令、真看输出、真判对错。三章 {LEVELS.length} 关，从文件操作到权限。
+    浏览器里的 Linux 命令练习场：真敲命令、真看输出、真判对错。{CHAPTERS.length} 章 {LEVELS.length} 关，从文件操作到日志统计。
   </p>
   <section class="mt-8 grid gap-4 sm:grid-cols-3">
     {chapters.map((chapter) => (
